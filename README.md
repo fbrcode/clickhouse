@@ -40,12 +40,16 @@ In 2021, ClickHouse incorporated as a company, receiving significant funding and
 
 ## Installation
 
-ClickHouse can be installed on various operating systems, including Linux, macOS, and Windows. The installation process may vary depending on the operating system and package manager used.
+Let's use docker compose to install and run ClickHouse.
 
-### macOS
-
-On macOS, ClickHouse can be installed using Homebrew. You can install ClickHouse using the following commands:
-
-```bash
-brew install clickhouse
+```sh
+docker compose up -d
 ```
+
+To connect to the ClickHouse server, you can use the following command:
+
+```sh
+docker compose exec clickhouse clickhouse-client
+```
+
+Run `show databases;` to see the list of databases and `\q` to exit the ClickHouse client.
