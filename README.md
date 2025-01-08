@@ -38,7 +38,7 @@ In 2021, ClickHouse incorporated as a company, receiving significant funding and
 - Eventually consistent
 - Can handle up to few hundreds of queries per second
 
-## Installation
+## Install & Run
 
 Let's use docker compose to install and run ClickHouse.
 
@@ -53,3 +53,76 @@ docker compose exec clickhouse clickhouse-client
 ```
 
 Run `show databases;` to see the list of databases and `\q` to exit the ClickHouse client.
+
+## Web Interface
+
+ClickHouse comes with a web interface called `Tabix`.
+
+You can access it by visiting `http://localhost:8123/play` in your web browser.
+
+## MacOS ClickHouse Client
+
+To install the ClickHouse client on MacOS, you can use Homebrew:
+
+```sh
+brew install --cask clickhouse
+```
+
+Then, you can connect to the ClickHouse server using the following command:
+
+```sh
+clickhouse client --host 127.0.0.1 --port 9000 --user default
+# or run query directly
+clickhouse client --host 127.0.0.1 --port 9000 --user default --query "show tables from information_schema"
+```
+
+## Kubernetes ClickHouse Operator
+
+ClickHouse Operator is a Kubernetes operator that simplifies the deployment and management of ClickHouse clusters on Kubernetes.
+
+Github Source: [Altinity / clickhouse-operator](https://github.com/Altinity/clickhouse-operator)
+
+Install bundle with:
+
+```sh
+# wget https://raw.githubusercontent.com/Altinity/clickhouse-operator/master/deploy/operator/clickhouse-operator-install-bundle.yaml
+kubectl apply -f ./conf/clickhouse-operator-install-bundle.yaml
+```
+
+Create a namespace for ClickHouse:
+
+```sh
+kubectl create namespace clickhouse
+```
+
+Create a ClickHouse cluster:
+
+```sh
+kubectl apply -f ./conf/CH-Cluster1.yaml -n clickhouse
+```
+
+Check the status of the ClickHouse cluster:
+
+```sh
+kubectl get all -n clickhouse
+```
+
+Check the status of the ClickHouse installation:
+
+```sh
+kubectl get ClickHouseInstallation -n clickhouse
+```
+
+Connect to the ClickHouse server:
+
+```sh
+kubectl exec -n clickhouse -it chi-ch1-ch1-0-0-0 -- clickhouse-client
+```
+
+To access the ClickHouse server from your local machine, you can use port forwarding:
+
+```sh
+kubectl -n clickhouse port-forward chi-ch1-ch1-0-0-0 11000:8123 &
+```
+
+You can now access the ClickHouse web interface by visiting `http://localhost:11000/play` in your web browser.
