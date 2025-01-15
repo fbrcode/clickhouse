@@ -1,0 +1,43 @@
+ 
+CREATE ROLE 'ch_test';
+
+GRANT SELECT ON datasets.* TO ch_test;
+
+REVOKE INSERT ON datasets.* FROM ch_test;
+
+CREATE USER 'test' IDENTIFIED WITH plaintext_password BY '123456';
+
+GRANT ch_test TO test;
+
+CREATE USER 'test_1' IDENTIFIED WITH plaintext_password BY '123456' DEFAULT ROLE ch_test;
+
+
+ALTER  ROLE ch_test RENAME TO ch_test1;
+
+DROP ROLE ch_test1;
+
+SHOW ROLES;
+
+
+
+CREATE SETTINGS PROFILE settings_profile_1 SETTINGS max_result_rows = 10;
+
+CREATE ROLE settings_profile_1_role SETTINGS PROFILE settings_profile_1;
+
+GRANT SELECT ON datasets.* TO settings_profile_1_role;
+
+CREATE USER test_multiple_settings IDENTIFIED WITH PLAINTEXT_PASSWORD BY '123456'
+DEFAULT ROLE settings_profile_1_role;
+
+SELECT * FROM datasets.hits_v1 LIMIT 100;
+
+DROP PROFILE settings_profile_1;
+
+
+CREATE QUOTA example_quota FOR INTERVAL 15 minute MAX queries = 15 TO test;
+
+--queries | query_selects | query_inserts | errors | result_rows | result_bytes | read_rows | read_bytes | execution_time
+
+ALTER QUOTA IF EXISTS example_quota FOR INTERVAL 15 minute MAX queries = 20 TO test;
+
+DROP QUOTA example_quota;

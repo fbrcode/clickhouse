@@ -1,0 +1,124 @@
+-- mysql
+
+CREATE TABLE clickhouse.test(
+   column1 smallint,
+   column2 decimal,
+   PRIMARY KEY( column1 ));
+
+  CREATE DATABASE clickhouse;
+
+  insert into clickhouse.test values (1, 1.0), (2,2.0);
+
+ select * from clickhouse.test;
+
+ -- Postgres
+
+CREATE TABLE test(
+   column1 smallint,
+   column2 decimal,
+   PRIMARY KEY( column1 ));
+
+
+ insert into test values (1, 1.0), (2,2.0);
+
+select * from test;
+
+ -- CH
+
+ CREATE TABLE mysql_table (
+   column1 Int16,
+   column2 Float32
+)
+ENGINE = MySQL('127.0.0.1','clickhouse','test','root','123456');
+
+
+SELECT * FROM mysql_table;
+
+DROP table mysql_table;
+
+CREATE TABLE postgres_table
+(
+   column1 Int16,
+   column2 Float32
+)
+ENGINE = PostgreSQL('127.0.0.1:15432', 'postgres', 'test', 'postgres', 'postgres');
+
+SELECT * FROM postgres_table;
+
+-- Mongo
+
+db.clickhouse_mongo.insertOne({"ID":"1", "Name":"a"})
+db.clickhouse_mongo.insertOne({"ID":"2", "Name":"b"})
+db.clickhouse_mongo.insertOne({"ID":"3", "Name":"c"})
+
+db.createUser(
+  {
+    user: "ch_mongo",
+    pwd:  "ch_mongo_password",
+    roles: [ { role: "readWrite", db: "clickhouse_mongo" }]
+  }
+)
+
+CREATE TABLE ch_mongo
+(
+    ID Int32,
+    Name String,
+)
+ENGINE = MongoDB('localhost:27017', 'clickhouse_mongo', 'clickhouse_mongo', 'ch_mongo', 'ch_mongo_password');
+
+DROP TABLE ch_mongo;
+
+SELECT * FROM ch_mongo;
+
+-- kafka
+
+
+CREATE TABLE kafka_push
+(
+ID UInt64,
+Name String
+)
+ENGINE = Kafka('kafka:9092', 'kafka_push1', 'cgroup1', 'JSONEachRow');
+
+CREATE TABLE kafka_mt_push
+(
+ID UInt64,
+Name String
+)
+ENGINE = MergeTree()
+ORDER BY ID;
+
+CREATE MATERIALIZED VIEW kafka_mv_push TO kafka_push
+AS SELECT ID, Name
+FROM kafka_mt_push;
+
+INSERT INTO kafka_mt_push VALUES (1, 'a');
+
+CREATE TABLE kafka_pull
+(
+ID UInt64,
+Name String
+)
+ENGINE = Kafka('kafka:9092', 'kafka_push1', 'cgroup1', 'JSONEachRow');
+
+CREATE TABLE kafka_mt_pull
+(
+ID UInt64,
+Name String
+)
+ENGINE = MergeTree()
+ORDER BY ID;
+
+CREATE MATERIALIZED VIEW kafka_mv_pull TO kafka_mt_pull
+AS SELECT ID, Name
+FROM kafka_pull;
+
+SELECT * FROM kafka_mt_pull;
+
+
+
+
+
+
+
+

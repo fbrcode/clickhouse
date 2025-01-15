@@ -1,13 +1,18 @@
 services:
-  clickhouse:
-    image: clickhouse/clickhouse-server
-    ports:
-      - "8123:8123"
-      - "9000:9000"
-    volumes:
-      - ./db/data:/var/lib/clickhouse
-      - ./db/logs:/var/log/clickhouse-server
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
+    clickhouse:
+        image: clickhouse/clickhouse-server
+        hostname: ch-server
+        # environment:
+        # - CLICKHOUSE_CONFIG_FILE=/etc/clickhouse-server/config.xml
+        # - CLICKHOUSE_USER=default
+        # - CLICKHOUSE_PASSWORD=123456
+        ports:
+            - "8123:8123"
+            - "9000:9000"
+        volumes:
+            - ./db/data:/var/lib/clickhouse
+            - ./db/logs:/var/log/clickhouse-server
+        ulimits:
+            nofile:
+                soft: 262144
+                hard: 262144

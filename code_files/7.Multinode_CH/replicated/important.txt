@@ -1,0 +1,41 @@
+	<remote_servers>
+	<replicated_cluster>
+		<shard>
+		<internal_replication>true</internal_replication>
+		<replica>
+			<host>clickhouse1</host>
+			<port>9000</port>
+		</replica>
+		<replica>
+			<host>clickhouse2</host>
+			<port>9000</port>
+		</replica>
+		</shard>
+	</replicated_cluster>
+	</remote_servers>
+
+
+	<zookeeper>
+	<node index="1">
+		<host>zookeeper</host>
+		<port>2181</port>
+	</node>
+	</zookeeper>
+
+	<macros>
+	<replica>ch1</replica>
+	</macros>
+
+
+
+CREATE TABLE replicated_example
+(
+    ID UInt32,
+    Name String
+) ENGINE = ReplicatedMergeTree('/clickhouse/tables/replicated_example', '{replica}')
+ORDER BY (ID);
+
+
+INSERT INTO replicated_example VALUES (1, 'a'), ('2', 'b');
+
+ALTER TABLE replicated_example DELETE WHERE ID IS NOT NULL;

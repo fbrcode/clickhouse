@@ -1,0 +1,37 @@
+BACKUP TABLE employee  TO Disk('backups', 'employee_v1.zip');
+
+RESTORE TABLE employee AS employee_restored_v1 FROM Disk('backups', 'employee_v1.zip');
+
+SELECT * FROM employee;
+
+INSERT INTO employee VALUES ('d', 'city4');
+
+
+BACKUP TABLE employee TO Disk('backups', 'employee_v2.zip')
+SETTINGS base_backup = Disk('backups', 'employee_v1.zip')
+
+RESTORE TABLE employee AS employee_restored_v2 FROM Disk('backups', 'employee_v2.zip');
+
+-- clickhouse-copier
+
+CREATE TABLE salary
+(salary Nullable(UInt32),
+month  Nullable(String),
+name String
+)
+Engine = MergeTree
+ORDER BY name;
+
+SELECT * FROM salary;
+
+INSERT INTO salary VALUES (1200, 'Nov', 'a'), (1000, 'Jan', 'b'), (800, Null, 'd') ;
+
+--
+
+clickhouse-local -q "SELECT * FROM file('iris_csv.csv') LIMIT 5"
+
+clickhouse-local -q "DESCRIBE file('iris_csv.csv')"
+
+clickhouse-benchmark --query "SELECT COUNT(DISTINCT WatchID) FROM datasets.hits_v1 hv WHERE UserAgentMajor=24" --password 123456 --timelimit 10
+
+
