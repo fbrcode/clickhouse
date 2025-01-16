@@ -13,6 +13,8 @@ services:
     networks:
       - ch_replicated
     volumes:
+      - clickhouse_data1:/var/lib/clickhouse
+      - clickhouse_data1:/var/log/clickhouse-server
       - type: bind
         source: ./config_1.xml
         target: /etc/clickhouse-server/config.xml
@@ -31,9 +33,15 @@ services:
     networks:
       - ch_replicated
     volumes:
+      - clickhouse_data2:/var/lib/clickhouse
+      - clickhouse_data2:/var/log/clickhouse-server
       - type: bind
         source: ./config_2.xml
         target: /etc/clickhouse-server/config.xml
+
+volumes:
+  clickhouse_data1:
+  clickhouse_data2:
 
 networks:
   ch_replicated:

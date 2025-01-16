@@ -1,5 +1,4 @@
 .env
-db/data/
-db/logs/
 sample/*.xz
 sample/*.csv
+out/

@@ -28,6 +28,8 @@ services:
     depends_on:
       - zookeeper
     volumes:
+      - clickhouse_data1:/var/lib/clickhouse
+      - clickhouse_data1:/var/log/clickhouse-server
       - type: bind
         source: config_1.xml
         target: /etc/clickhouse-server/config.xml
@@ -48,6 +50,8 @@ services:
     depends_on:
       - zookeeper
     volumes:
+      - clickhouse_data2:/var/lib/clickhouse
+      - clickhouse_data2:/var/log/clickhouse-server
       - type: bind
         source: config_2.xml
         target: /etc/clickhouse-server/config.xml
@@ -68,6 +72,8 @@ services:
     depends_on:
       - zookeeper
     volumes:
+      - clickhouse_data3:/var/lib/clickhouse
+      - clickhouse_data3:/var/log/clickhouse-server
       - type: bind
         source: config_3.xml
         target: /etc/clickhouse-server/config.xml
@@ -88,9 +94,17 @@ services:
     depends_on:
       - zookeeper
     volumes:
+      - clickhouse_data4:/var/lib/clickhouse
+      - clickhouse_data4:/var/log/clickhouse-server
       - type: bind
         source: config_4.xml
         target: /etc/clickhouse-server/config.xml
+
+volumes:
+  clickhouse_data1:
+  clickhouse_data2:
+  clickhouse_data3:
+  clickhouse_data4:
 
 networks:
   ch_replicated:

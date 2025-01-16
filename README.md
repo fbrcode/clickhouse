@@ -61,6 +61,12 @@
   - [Clustering, Replication and Sharding](#clustering-replication-and-sharding)
     - [Replication](#replication)
     - [Sharding](#sharding)
+    - [Replication and Sharding](#replication-and-sharding)
+  - [External Data sources](#external-data-sources)
+    - [MySQL](#mysql)
+    - [PostgreSQL](#postgresql)
+    - [MongoDB](#mongodb)
+    - [Apache Kafka](#apache-kafka)
 
 ## About ClickHouse
 
@@ -1826,10 +1832,7 @@ clickhouse client --host 127.0.0.1 --port 8003 --user default
 ```sql
 -- Create and Drop must be performed on all the nodes
 CREATE TABLE replicated_example
-(
-ID UInt32,
-Name String
-)
+(ID UInt32, Name String)
 ENGINE = ReplicatedMergeTree(
   '/clickhouse/tables/replicated_example', -- Zookeeper path where the ClickHouse stores the metadata of the replicated table
   '{replica}' -- unique identifier for the replica
@@ -2037,5 +2040,352 @@ SELECT *,_shard_num FROM distributed_replicated_example;
 11. │  1 │ a    │          2 │
 12. │  2 │ b    │          2 │
     └────┴──────┴────────────┘
+*/
+```
+
+## External Data sources
+
+More often in real world usage, the data ingested in to the ClickHouse is from external data store.
+
+ClickHouse has in built support for connecting to external data sources and ingestion.
+
+Lets integrate ClickHouse with:
+
+- MySQL
+- PostgreSQL
+- MongoDB
+- Apache Kafka
+
+### MySQL
+
+- Commonly used transactional database management system
+- Dedicated engine in ClickHouse for MySQL
+- Perform INSERT and SELECT
+
+Example:
+
+```bash
+cd integrations
+
+# start mysql database container
+docker compose up -d
+
+# install client in macos (optional)
+brew install mysql-client
+echo 'export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# for troubleshooting, connect to mysql instance (optional)
+docker compose exec --user root mysql bash
+
+# connect to mysql database
+source .env-mysql
+mysql -v < mysql_init.sql
+mysql -v -e "SELECT * FROM clickhouse.test;"
+```
+
+Output:
+
+```txt
+--------------
+SELECT * FROM clickhouse.test
+--------------
+
++---------+---------+
+| column1 | column2 |
++---------+---------+
+|       1 |       2 |
+|       3 |       4 |
++---------+---------+
+```
+
+In ClickHouse, run this for the integration:
+
+```bash
+clickhouse client --host 127.0.0.1 --port 9000 --user default
+```
+
+```sql
+-- DROP TABLE mysql_table;
+CREATE TABLE mysql_table (column1 Int16, column2 Float32)
+ENGINE = MySQL (
+  'mysql', -- host
+  'clickhouse', -- database
+  'test', -- table
+  'root', -- user
+  'root' -- password
+);
+
+SELECT * FROM mysql_table;
+
+/*
+   ┌─column1─┬─column2─┐
+1. │       1 │       2 │
+2. │       3 │       4 │
+   └─────────┴─────────┘
+*/
+
+INSERT INTO mysql_table VALUES (3,3.3);
+
+SELECT * FROM mysql_table;
+
+/*
+   ┌─column1─┬─column2─┐
+1. │       1 │       2 │
+2. │       3 │       4 │
+3. │       3 │     3.3 │
+   └─────────┴─────────┘
+*/
+```
+
+### PostgreSQL
+
+- Another popular transactional database management system
+- Dedicated engine in ClickHouse for PostgreSQL
+- Perform INSERT and SELECT
+
+Example:
+
+```bash
+cd integrations
+
+# start mysql database container
+docker compose up -d
+
+# for troubleshooting, connect to mysql instance (optional)
+docker compose exec --user root postgres bash
+
+# connect to mysql database
+source .env-postgres
+psql --echo-all -f postgres_init.sql
+psql --echo-all -d clickhouse -c "SELECT * FROM test;"
+```
+
+Output:
+
+```txt
+SELECT * FROM test;
+ column1 | column2
+---------+---------
+       1 |       2
+       3 |       4
+(2 rows)
+```
+
+In ClickHouse, run this for the integration:
+
+```bash
+clickhouse client --host 127.0.0.1 --port 9000 --user default
+```
+
+```sql
+-- DROP TABLE postgres_table;
+CREATE TABLE postgres_table (column1 Int16, column2 Float32)
+ENGINE = PostgreSQL (
+  'postgres:5432', -- host:port
+  'clickhouse', -- database
+  'test', -- table
+  'postgres', -- user
+  'postgres' -- password
+);
+
+SELECT * FROM postgres_table;
+
+/*
+   ┌─column1─┬─column2─┐
+1. │       1 │       2 │
+2. │       3 │       4 │
+   └─────────┴─────────┘
+*/
+
+INSERT INTO postgres_table VALUES (3,3.3);
+
+SELECT * FROM mysql_table;
+
+/*
+   ┌─column1─┬─column2─┐
+1. │       1 │       2 │
+2. │       3 │       4 │
+3. │       3 │     3.3 │
+   └─────────┴─────────┘
+*/
+
+```
+
+### MongoDB
+
+- Document oriented NoSQL database system
+- ClickHouse has MongoDB table engine (only for non nested data types)
+- Can perform SELECT operation
+
+Example:
+
+```bash
+cd integrations
+
+# start mongodb database container
+docker compose up -d
+
+# for troubleshooting, connect to mongodb instance (optional)
+docker compose exec --user root mongodb
+
+# install client in macos (optional)
+brew update
+brew tap mongodb/brew
+brew install mongodb-database-tools
+brew install mongosh
+
+# connect to mongodb database
+source .env-mongo
+mongosh
+```
+
+Create mongodb objects:
+
+```javascript
+// add data
+use admin;
+db.createCollection("test");
+db.test.insertMany([{ID: 1, Name: "a"}, {ID: 2, Name: "b"}]);
+
+// query data
+db.test.find();
+```
+
+In ClickHouse, run this for the integration:
+
+```bash
+clickhouse client --host 127.0.0.1 --port 9000 --user default
+```
+
+```sql
+-- DROP TABLE mongo_table;
+CREATE TABLE mongo_table
+(ID Int32, Name String)
+ENGINE = MongoDB(
+  'mongodb:27017', -- host:port
+  'admin', -- database
+  'test', -- collection
+  'root', -- user
+  'root' -- password
+);
+
+SELECT * FROM mongo_table;
+
+/*
+   ┌─ID─┬─Name─┐
+1. │  1 │ a    │
+2. │  2 │ b    │
+   └────┴──────┘
+*/
+```
+
+### Apache Kafka
+
+- An open source, distributed event streaming platform
+- ClickHouse has a Kafka table engine, that can produce and consume messages/data
+- We use materialized views to track the data and push/pull from Kafka table engine
+
+```bash
+cd integrations
+
+# start kafka container
+docker compose up -d
+
+# for troubleshooting, connect to kafka instance (optional)
+docker compose exec --user root kafka bash
+
+# install client in macos (optional)
+brew install kafka
+
+# create topic
+docker compose exec -ti kafka /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic demo --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+
+# list topics
+docker compose exec -ti kafka /opt/bitnami/kafka/bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+
+# publish message (ctrl+c to exit)
+docker compose exec -ti kafka /opt/bitnami/kafka/bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic demo
+
+# consume message (ctrl+c to exit)
+docker compose exec -ti kafka /opt/bitnami/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic demo --from-beginning
+
+# create topic
+kafka-topics --create --topic test --bootstrap-server localhost:9094 --partitions 1 --replication-factor 1
+
+# list topics
+kafka-topics --list --bootstrap-server localhost:9094
+
+# publish message
+echo "Hello Kafka" | kafka-console-producer --bootstrap-server localhost:9094 --topic test
+
+# consume message
+kafka-console-consumer --bootstrap-server localhost:9094 --topic test --from-beginning -max-messages 1
+```
+
+Example:
+
+The click house and Kafka are already running as docker containers.
+
+We have already seen that we can either push or pull the messages from a Kafka topic using click house Kafka table engine.
+
+To illustrate this I am going to use set of tables which will be used to push and pull the messages from a topic within a single click house server.
+
+From the push side I will be using a push storage table which is nothing but a basic merge tree table engine and I will create a push kafka table which will push the messages to the kafka topic.
+
+The data inserted in the push storage table will be captured by a materialized view and the data will be inserted to the push kafka table.
+
+This kafka table will push the data as messages to a kafka topic.
+
+In the pull side we have pull kafka table, pull storage table and a pull materialized view.
+
+So the message that was published to Kafka topic will be read by the pull Kafka table and the materialized view will keep track of changes in the pull Kafka table and if there are any new messages in the pull Kafka table it will read the message and write the data to the pull storage table.
+
+So when we insert a row of data in the push storage table it goes to the push Kafka table via the push materialized view and from the push Kafka table it is published to a Kafka topic and from that particular kafka topic the messages are read from the pull kafka table and whenever there are new messages in the pull kafka table the pull materialized view will read the message and write the data to the pull storage table let us look at an example for this
+
+```sql
+-- push steps
+CREATE TABLE kafka_mt_push
+(ID UInt64, Name String)
+ENGINE = MergeTree()
+ORDER BY ID;
+
+CREATE TABLE kafka_push
+(ID UInt64, Name String)
+ENGINE = Kafka(
+  'kafka:9092', -- list of brokers (CSV)
+  'kafka_push_1', -- list of topics (CSV)
+  'cgroup_1', -- consumer group
+  'JSONEachRow' -- format of the message published or read (JSONEachRow, JSONCompactEachRow, etc.)
+);
+
+CREATE MATERIALIZED VIEW kafka_mv_push TO kafka_push AS SELECT ID, Name FROM kafka_mt_push;
+
+-- pull steps
+CREATE TABLE kafka_mt_pull
+(ID UInt64, Name String)
+ENGINE = MergeTree()
+ORDER BY ID;
+
+CREATE TABLE kafka_pull
+(ID UInt64, Name String)
+ENGINE = Kafka(
+  'kafka:9092', -- list of brokers (CSV)
+  'kafka_push_1', -- list of topics (CSV)
+  'cgroup_1', -- consumer group
+  'JSONEachRow' -- format of the message published or read (JSONEachRow, JSONCompactEachRow, etc.)
+);
+
+CREATE MATERIALIZED VIEW kafka_mv_pull TO kafka_mt_pull AS SELECT ID, Name FROM kafka_pull;
+
+-- run
+INSERT INTO kafka_mt_push VALUES (1, 'a'), (2, 'b'), (3, 'c'), (4, 'd'), (5, 'e');
+
+SELECT * FROM kafka_mt_pull;
+
+/*
+   ┌─ID─┬─Name─┐
+1. │  1 │ a    │
+   └────┴──────┘
 */
 ```
