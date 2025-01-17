@@ -62,11 +62,12 @@
     - [Replication](#replication)
     - [Sharding](#sharding)
     - [Replication and Sharding](#replication-and-sharding)
-  - [External Data sources](#external-data-sources)
+  - [External Data sources (Integrations)](#external-data-sources-integrations)
     - [MySQL](#mysql)
     - [PostgreSQL](#postgresql)
     - [MongoDB](#mongodb)
     - [Apache Kafka](#apache-kafka)
+    - [Cloud Object Storage](#cloud-object-storage)
   - [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
   - [Admin and Settings](#admin-and-settings)
     - [Settings](#settings)
@@ -2049,7 +2050,7 @@ SELECT *,_shard_num FROM distributed_replicated_example;
 */
 ```
 
-## External Data sources
+## External Data sources (Integrations)
 
 More often in real world usage, the data ingested in to the ClickHouse is from external data store.
 
@@ -2394,6 +2395,63 @@ SELECT * FROM kafka_mt_pull;
 1. │  1 │ a    │
    └────┴──────┘
 */
+```
+
+### Cloud Object Storage
+
+- ClickHouse can read and write data from cloud object storage like AWS S3, Google Cloud Storage, Azure Blob Storage
+
+S3 Table Example:
+
+```sql
+CREATE TABLE S3_example_table
+(id Int32, name String)
+ENGINE = S3(
+'https://my-bucket.s3.amazonaws.com/data/my-data.csv',
+'CSV',
+'AWS_ACCESS_KEY',
+'AWS_SECRET_KEY',
+'gzip');
+
+-- no sign example
+CREATE TABLE s3_table (name String, value UInt32)
+ENGINE = S3('https://datasets-documentation.s3.eu-west-3.amazonaws.com/aapl_stock.csv', NOSIGN, 'CSVWithNames');
+
+SELECT * FROM s3_table LIMIT 3;
+
+/*
+   ┌─name─┬─value─┐
+1. │      │     0 │
+2. │      │     0 │
+3. │      │     0 │
+   └──────┴───────┘
+*/
+```
+
+S3 Queue Engine allows to consume data from S3 bucket in a queue manner.
+
+This is useful in a scenario where the data is continuously being written to the S3 bucket (message broker) and we want to consume the data as soon as it is written to the S3 bucket.
+
+Example:
+
+```sql
+CREATE TABLE s3_queue_engine_table(name String, value UInt32)
+ENGINE = S3Queue(path, [NOSIGN, | aws_access_key_id, aws_secret_access_key,]
+format, [compression], [headers])
+[SETTINGS]
+[mode = ",]
+[after_processing = 'keep',]
+[keeper_path = ",]
+[loading_retries = 0,]
+[processing_threads_num = 1,]
+[enable_logging_to_s3queue_log = 0,]
+[polling_min_timeout_ms = 1000,]
+[polling_max_timeout_ms = 10000,]
+[polling_backoff_ms = 0,]
+[tracked_file_tt|_sec = 0,]
+[tracked_files_limit = 1000,]
+[cleanup_interval_min_ms = 10000,]
+[cleanup_interval_max_ms = 30000,]
 ```
 
 ## Role-Based Access Control (RBAC)
