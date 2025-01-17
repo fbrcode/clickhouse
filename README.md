@@ -72,6 +72,7 @@
     - [Settings](#settings)
     - [System Tables](#system-tables)
     - [Backup \& Restore](#backup--restore)
+    - [ClickHouse Local](#clickhouse-local)
 
 ## About ClickHouse
 
@@ -2634,5 +2635,96 @@ ClickHouse has a set of backup commands to backup the ClickHouse server.
 Example:
 
 ```sql
+-- Init
+CREATE DATABASE IF NOT EXISTS datasets;
+CREATE TABLE datasets.hits_v1 (WatchID Int32, UserAgentMajor Int32) ENGINE = MergeTree ORDER BY WatchID;
+INSERT INTO datasets.hits_v1 SELECT * FROM generateRandom() LIMIT 1000000;
+SELECT COUNT(*) FROM datasets.hits_v1;
 
+-- Backup
+BACKUP TABLE datasets.hits_v1
+TO Disk('backup_disk', 'hits_v1_backup_0001.zip');
+
+-- Restore
+CREATE DATABASE IF NOT EXISTS datasets;
+
+RESTORE TABLE datasets.hits_v1 AS datasets.hits_v2
+FROM Disk('backup_disk', 'hits_v1_backup_0001.zip');
+
+SELECT COUNT(*) FROM datasets.hits_v1;
+SELECT COUNT(*) FROM datasets.hits_v2;
+
+-- Incremental Backup
+INSERT INTO datasets.hits_v1 SELECT * FROM generateRandom() LIMIT 1000000;
+
+SELECT COUNT(*) FROM datasets.hits_v1;
+SELECT COUNT(*) FROM datasets.hits_v2;
+
+BACKUP TABLE datasets.hits_v1
+TO Disk('backup_disk', 'hits_v1_backup_0002.zip')
+SETTINGS base_backup = Disk('backup_disk', 'hits_v1_backup_0001.zip');
+
+-- Restore from incremental backup
+RESTORE TABLE datasets.hits_v1 AS datasets.hits_v3
+FROM Disk('backup_disk', 'hits_v1_backup_0002.zip');
+
+SELECT COUNT(*) FROM datasets.hits_v1;
+SELECT COUNT(*) FROM datasets.hits_v2;
+SELECT COUNT(*) FROM datasets.hits_v3;
+```
+
+It is also possible to backup to AWS S3 endpoint or Azure Blob Storage:
+
+```sql
+BACKUP TABLE datasets.hits_v1 TO S3(
+  '<S3 endpoint>/<directory>',
+  '<Access key ID>',
+  '<Secret access key>'
+);
+
+BACKUP TABLE datasets.hits_v1 TO AzureBlobStorage(
+  '<connection string>/<url>',
+  '<container>',
+  '<path>',
+  '<account name>',
+  '<account key>'
+);
+```
+
+### ClickHouse Local
+
+ClickHouse has a local mode to run the ClickHouse with local files.
+
+Example:
+
+Get the schema of the CSV file:
+
+```sh
+clickhouse local -q "DESCRIBE file('code_files/sample_data.csv')"
+```
+
+Output:
+
+```txt
+ID      Nullable(Int64)
+Name    Nullable(String)
+Age     Nullable(Int64)
+Date    Nullable(Date)
+Member  Nullable(Bool)
+```
+
+Query the CSV file:
+
+```sh
+clickhouse local -q "SELECT * FROM file('code_files/sample_data.csv') LIMIT 5"
+```
+
+Output:
+
+```txt
+1       Alice   25      2023-01-31      true
+2       Bob     34      2023-02-28      false
+3       Charlie 45      2023-03-31      true
+4       Diana   29      2023-04-30      true
+5       Eve     30      2023-05-31      false
 ```

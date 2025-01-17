@@ -1,4 +1,6 @@
 .env
-sample/*.xz
-sample/*.csv
+assignment/sample/*.xz
+assignment/sample/*.csv
 out/
+backup/
+
