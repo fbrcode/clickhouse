@@ -67,6 +67,11 @@
     - [PostgreSQL](#postgresql)
     - [MongoDB](#mongodb)
     - [Apache Kafka](#apache-kafka)
+  - [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
+  - [Admin and Settings](#admin-and-settings)
+    - [Settings](#settings)
+    - [System Tables](#system-tables)
+    - [Backup \& Restore](#backup--restore)
 
 ## About ClickHouse
 
@@ -160,7 +165,7 @@ Install bundle with:
 
 ```sh
 # wget https://raw.githubusercontent.com/Altinity/clickhouse-operator/master/deploy/operator/clickhouse-operator-install-bundle.yaml
-kubectl apply -f ./conf/clickhouse-operator-install-bundle.yaml
+kubectl apply -f ./conf/k8s/clickhouse-operator-install-bundle.yaml
 ```
 
 Create a namespace for ClickHouse:
@@ -172,7 +177,7 @@ kubectl create namespace clickhouse
 Create a ClickHouse cluster:
 
 ```sh
-kubectl apply -f ./conf/CH-Cluster1.yaml -n clickhouse
+kubectl apply -f ./conf/k8s/CH-Cluster1.yaml -n clickhouse
 ```
 
 Check the status of the ClickHouse cluster:
@@ -2388,4 +2393,246 @@ SELECT * FROM kafka_mt_pull;
 1. │  1 │ a    │
    └────┴──────┘
 */
+```
+
+## Role-Based Access Control (RBAC)
+
+ClickHouse supports Role-Based Access Control (RBAC) to manage the access to the data and the operations performed on the data.
+
+The roles are created and assigned to the users and the roles can have privileges to perform operations on the databases, tables, columns, etc.
+
+The roles can be assigned to the users and the users can be assigned to the roles.
+
+- The roles can be created and assigned to the users using the `CREATE ROLE` and `GRANT ROLE` commands.
+- The privileges can be granted to the roles using the `GRANT` command.
+- The privileges can be revoked from the roles using the `REVOKE` command.
+- The roles can be dropped using the `DROP ROLE` command.
+- The roles can be assigned to the users using the `GRANT ROLE` command.
+- The roles can be revoked from the users using the `REVOKE ROLE` command.
+- The roles can be listed using the `SHOW ROLES` command.
+- The privileges can be listed using the `SHOW PRIVILEGES` command.
+- The privileges granted to the roles can be listed using the `SHOW GRANTS` command.
+- The privileges granted to the users can be listed using the `SHOW GRANTS FOR` command.
+- The privileges granted to the roles can be listed using the `SHOW GRANTS TO` command.
+
+Code examples can be found at [code_files/RBAC.sql](code_files/RBAC.sql).
+
+## Admin and Settings
+
+ClickHouse has a set of administrative commands and settings to manage the ClickHouse server.
+
+The administrative commands are used to manage the ClickHouse server and the settings are used to configure the ClickHouse server.
+
+The administrative commands are used to perform operations like starting and stopping the ClickHouse server, creating and dropping the databases, tables, etc.
+
+The settings are used to configure the ClickHouse server like setting the memory limits, setting the query timeouts, etc.
+
+Every ClickHouse server in production needs to be maintained and administered to avoid potential performance bottlenecks and security breaches.
+
+This section is dedicated to configuring a ClickHouse server, understanding the system tables and using the tools that come along with ClickHouse.
+
+Code examples can be found at [code_files/dba.sql](code_files/dba.sql).
+
+### Settings
+
+In [config.xml](./conf/single/config.xml) file, we can set the settings for the ClickHouse server.
+
+For example, we can define custom settings in the config.xml when the setting is enabled.
+
+```xml
+<custom_settings_prefixes>SQL_</custom_settings_prefixes>
+```
+
+Then we can define specific settings in the server.
+
+```sql
+SET SQL_custom_setting = 1;
+
+SELECT getSetting('SQL_custom_setting');
+
+/*
+   ┌─getSetting('SQL_custom_setting')─┐
+1. │                                1 │
+   └──────────────────────────────────┘
+*/
+```
+
+### System Tables
+
+ClickHouse has a set of system tables that are used to store the metadata of the ClickHouse server.
+
+```sql
+SHOW TABLES FROM system;
+
+/*
+     ┌─name───────────────────────────┐
+  1. │ aggregate_function_combinators │
+  2. │ asynchronous_inserts           │
+  3. │ asynchronous_loader            │
+  4. │ asynchronous_metric_log        │
+  5. │ asynchronous_metrics           │
+  6. │ azure_queue_settings           │
+  7. │ backups                        │
+  8. │ build_options                  │
+  9. │ certificates                   │
+ 10. │ clusters                       │
+ 11. │ collations                     │
+ 12. │ columns                        │
+ 13. │ contributors                   │
+ 14. │ current_roles                  │
+ 15. │ dashboards                     │
+ 16. │ data_skipping_indices          │
+ 17. │ data_type_families             │
+ 18. │ database_engines               │
+ 19. │ databases                      │
+ 20. │ detached_parts                 │
+ 21. │ detached_tables                │
+ 22. │ dictionaries                   │
+ 23. │ disks                          │
+ 24. │ distributed_ddl_queue          │
+ 25. │ distribution_queue             │
+ 26. │ dns_cache                      │
+ 27. │ dropped_tables                 │
+ 28. │ dropped_tables_parts           │
+ 29. │ enabled_roles                  │
+ 30. │ error_log                      │
+ 31. │ errors                         │
+ 32. │ events                         │
+ 33. │ filesystem_cache               │
+ 34. │ filesystem_cache_settings      │
+ 35. │ formats                        │
+ 36. │ functions                      │
+ 37. │ grants                         │
+ 38. │ graphite_retentions            │
+ 39. │ jemalloc_bins                  │
+ 40. │ kafka_consumers                │
+ 41. │ keywords                       │
+ 42. │ licenses                       │
+ 43. │ macros                         │
+ 44. │ merge_tree_settings            │
+ 45. │ merges                         │
+ 46. │ metric_log                     │
+ 47. │ metrics                        │
+ 48. │ models                         │
+ 49. │ moves                          │
+ 50. │ mutations                      │
+ 51. │ mysql_binlogs                  │
+ 52. │ named_collections              │
+ 53. │ numbers                        │
+ 54. │ numbers_mt                     │
+ 55. │ one                            │
+ 56. │ part_moves_between_shards      │
+ 57. │ parts                          │
+ 58. │ parts_columns                  │
+ 59. │ privileges                     │
+ 60. │ processes                      │
+ 61. │ processors_profile_log         │
+ 62. │ projection_parts               │
+ 63. │ projection_parts_columns       │
+ 64. │ projections                    │
+ 65. │ query_cache                    │
+ 66. │ query_log                      │
+ 67. │ quota_limits                   │
+ 68. │ quota_usage                    │
+ 69. │ quotas                         │
+ 70. │ quotas_usage                   │
+ 71. │ remote_data_paths              │
+ 72. │ replicas                       │
+ 73. │ replicated_fetches             │
+ 74. │ replicated_merge_tree_settings │
+ 75. │ replication_queue              │
+ 76. │ resources                      │
+ 77. │ rocksdb                        │
+ 78. │ role_grants                    │
+ 79. │ roles                          │
+ 80. │ row_policies                   │
+ 81. │ s3_queue_settings              │
+ 82. │ s3queue                        │
+ 83. │ scheduler                      │
+ 84. │ schema_inference_cache         │
+ 85. │ server_settings                │
+ 86. │ settings                       │
+ 87. │ settings_changes               │
+ 88. │ settings_profile_elements      │
+ 89. │ settings_profiles              │
+ 90. │ stack_trace                    │
+ 91. │ storage_policies               │
+ 92. │ symbols                        │
+ 93. │ table_engines                  │
+ 94. │ table_functions                │
+ 95. │ tables                         │
+ 96. │ text_log                       │
+ 97. │ time_zones                     │
+ 98. │ trace_log                      │
+ 99. │ user_directories               │
+100. │ user_processes                 │
+101. │ users                          │
+102. │ view_refreshes                 │
+103. │ warnings                       │
+104. │ workloads                      │
+105. │ zeros                          │
+106. │ zeros_mt                       │
+     └─name───────────────────────────┘
+*/
+```
+
+> **Note**: some system tables like `<query_log>` can be customized in [config.xml](./conf/single/config.xml) file.
+
+Query specific system table:
+
+```sql
+SELECT * FROM system.asynchronous_metrics
+WHERE metric = 'OSUptime'
+LIMIT 1 FORMAT Vertical;
+
+/*
+Row 1:
+──────
+metric:      OSUptime
+value:       229483.53
+description: The uptime of the host server (the machine where ClickHouse is running), in seconds.
+*/
+```
+
+For example, getting the cluester information:
+
+```sql
+SELECT * FROM system.clusters LIMIT 1 FORMAT Vertical;
+
+/*
+Row 1:
+──────
+cluster:                 default
+shard_num:               1
+shard_weight:            1
+internal_replication:    0
+replica_num:             1
+host_name:               localhost
+host_address:            127.0.0.1
+port:                    9000
+is_local:                1
+user:                    default
+default_database:
+errors_count:            0
+slowdowns_count:         0
+estimated_recovery_time: 0
+database_shard_name:
+database_replica_name:
+is_active:               ᴺᵁᴸᴸ
+replication_lag:         ᴺᵁᴸᴸ
+recovery_time:           ᴺᵁᴸᴸ
+*/
+```
+
+### Backup & Restore
+
+ClickHouse has a set of backup commands to backup the ClickHouse server.
+
+- `BACKUP <table_name> TO`
+- `RESTORE <table_name> FROM`
+
+Example:
+
+```sql
+
 ```
